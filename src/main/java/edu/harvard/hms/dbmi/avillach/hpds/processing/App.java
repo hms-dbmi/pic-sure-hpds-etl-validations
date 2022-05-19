@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -76,11 +77,10 @@ public class App
 					Integer currentCountForValue = valueCounts[x].get(fields.get(x));
 					if(currentCountForValue == null) {
 						currentCountForValue = 1;
-						valueCounts[x].put(fields.get(x), currentCountForValue);
 					}else {
 						currentCountForValue = currentCountForValue+1;
-						valueCounts[x].put(fields.get(x), currentCountForValue);
 					}
+					valueCounts[x].put(fields.get(x), currentCountForValue);
 				}
 				line = reader.readLine();
 			}
@@ -122,14 +122,18 @@ public class App
 			for(String concept_path : validationDataForFile.keySet()) {
 				PhenoCube cube = processor.getCube("concept_path");
 				Map<String, Object> validationDataForConcept = validationDataForFile.get(concept_path);
+				System.out.println("Checking concept : "  + concept_path);
 				if(cube.isStringType()) {
 					// If the cube is string type that means categorical data.
 					// We have to assume that our analysis of the data type going to be of the categorical type
 					// If it is not, that is something that has to be looked into manually to identify which side is wrong
-
+					Set<Entry> entrySet = cube.getCategoryMap().entrySet();
+					DoubleSummaryStatistics dss = new DoubleSummaryStatistics();
+					for(Entry entry : entrySet) {
+						dss.accept((Integer)((Set)entry.getValue()).size());
+					}
 				} else {
 					// If the cube is not string type that should mean continuous data.
-					System.out.println("Checking concept : "  + concept_path);
 					DoubleSummaryStatistics dss = new DoubleSummaryStatistics();
 					for(Comparable value : Arrays.stream(cube.sortedByValue()).map((KeyAndValue keyAndValue)->{return keyAndValue.getValue();}).collect(Collectors.toList())) {
 						dss.accept(((Double)value));						

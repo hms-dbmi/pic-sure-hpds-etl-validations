@@ -50,49 +50,78 @@ public class DictionaryValidation {
 						Set<String> categories = new TreeSet(variable.getValue().getValues().values());
 						Set<String> metaCategories = new TreeSet(variableMeta.getCategoryValues());
 						for(String category : categories) {
-							categoriesInDictionary.add(concept_path + "|||" + category);
+							categoriesInDictionary.add(
+									concept_path + 
+									"|||" + category + "|||");
 						}
 						for(String category : metaCategories) {
-							categoriesInHPDS.add(concept_path + "|||" + category);
+							categoriesInHPDS.add(
+									concept_path + 
+									"|||" + category + "|||");
 						}
 					}
 				}
 			});
 		});
 		
+		BufferedWriter writer = new BufferedWriter(new FileWriter(new File("/usr/local/docker-config/search/validationLog_hpds2dict_concepts.txt")));
+		
+		System.out.println("Diffing HPDS to dictionary");
 		SetView<String> missingFromDictionary = Sets.difference(variablesInHPDS, variablesInDictionary);
-		System.out.println("In HPDS but not dictionary: " + missingFromDictionary.size());
+		String str = "In HPDS but not dictionary: " + missingFromDictionary.size();
+		writeToLog(writer, str);
 		missingFromDictionary.forEach((concept_path)->{
-			System.out.println("    " + concept_path);
+			writeToLog(writer, "    " + concept_path);
 		});
+		writer.close();
 		
+		BufferedWriter writer2 = new BufferedWriter(new FileWriter(new File("/usr/local/docker-config/search/validationLog_dict2hpds_concepts.txt")));
+		System.out.println("Diffing dictionary to HPDS");
 		SetView<String> missingFromHPDS = Sets.difference(variablesInDictionary, variablesInHPDS);
-		System.out.println("In dictionary but not HPDS : " + missingFromHPDS.size());
+		writer2.write("In dictionary but not HPDS : " + missingFromHPDS.size());
 		missingFromHPDS.forEach((concept_path)->{
-			System.out.println("    " + concept_path);
+			writeToLog(writer2, "    " + concept_path);
 		});
+		writer2.close();
 		
-		
+		BufferedWriter writer3 = new BufferedWriter(new FileWriter(new File("/usr/local/docker-config/search/validationLog_categoriesMissingFromDict.txt")));
+		System.out.println("Diffing categories from dictionary");
 		SetView<String> categoriesMissingFromDictionary = Sets.difference(categoriesInHPDS, categoriesInDictionary);
-		System.out.println("Missing Categories From Dictionary : " + categoriesMissingFromDictionary.size());
+		writeToLog(writer3, "Missing Categories From Dictionary : " + categoriesMissingFromDictionary.size());
 		categoriesMissingFromDictionary.forEach((concept_path)->{
-			System.out.println("    " + concept_path);
+			writeToLog(writer3, "    " + concept_path);
 		});
-		
+		writer3.close();
+
+		BufferedWriter writer4 = new BufferedWriter(new FileWriter(new File("/usr/local/docker-config/search/validationLog_categoriesMissingFromHPDS.txt")));
+		System.out.println("Diffing categories from HPDS");
 		SetView<String> categoriesMissingFromHPDS = Sets.difference(categoriesInDictionary, categoriesInHPDS);
-		System.out.println("Missing Categories From HPDS : " + categoriesMissingFromHPDS.size());
+		writeToLog(writer4, "Missing Categories From HPDS : " + categoriesMissingFromHPDS.size());
 		categoriesMissingFromHPDS.forEach((concept_path)->{
-			System.out.println("    " + concept_path);
+			writeToLog(writer4, "    " + concept_path);
 		});
-		
+		writer4.close();
+
+		BufferedWriter writer5 = new BufferedWriter(new FileWriter(new File("/usr/local/docker-config/search/validationLog_mismatchedTypes.txt")));
+		System.out.println("Mismatched types");
 		SetView<String> variablesWithMismatchedType = Sets.union(
 				Sets.difference(categoricalVariablesInHPDS, categoricalVariablesInDictionary), 
 				Sets.difference(categoricalVariablesInDictionary, categoricalVariablesInHPDS));
-		System.out.println("Variables with incosistent type information : " + variablesWithMismatchedType.size());
+		writeToLog(writer5, "Variables with incosistent type information : " + variablesWithMismatchedType.size());
 		variablesWithMismatchedType.forEach((concept_path)->{
-			System.out.println("    " + concept_path);
+			writeToLog(writer5, "    " + concept_path);
 		});
-		
+		writer5.close();
+	}
+
+	private static void writeToLog(BufferedWriter writer, String str){
+		try{
+			writer.write(str);
+			writer.newLine();
+			writer.flush();
+		}catch(Exception e) {
+			
+		}
 	}
 
 	private static void loadHpdsColumnMeta(TreeMap<String, ColumnMeta>[] metaStore) {
